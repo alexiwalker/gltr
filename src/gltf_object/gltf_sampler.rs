@@ -2,7 +2,7 @@ use serde_derive::{Deserialize, Serialize};
 use crate::gltf_object::prelude::*;
 
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GltfSampler {
 	#[serde(rename="magFilter")]
 	pub mag_filter:Option<usize>,
@@ -17,4 +17,8 @@ pub struct GltfSampler {
 	pub name:Option<String>,
 	pub extras:Extras,
 	pub extensions:Extensions,
+
+
+	#[serde(skip)]
+	pub(crate) original_index: Option<usize>,
 }

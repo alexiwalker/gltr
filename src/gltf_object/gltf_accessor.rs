@@ -30,7 +30,11 @@ pub struct GltfAccessor {
 
 	pub name:Option<String>,
 	pub extensions:Extensions,
-	pub extras:Extras
+	pub extras:Extras,
+
+
+	#[serde(skip)]
+	pub(crate) original_index: Option<usize>,
 }
 
 

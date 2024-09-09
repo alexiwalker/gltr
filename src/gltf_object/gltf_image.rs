@@ -1,7 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 use crate::gltf_object::extras::{Extensions, Extras};
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GltfImage {
 	pub uri:Option<String>,
 
@@ -14,5 +14,7 @@ pub struct GltfImage {
 	pub name:Option<String>,
 	pub extensions:Extensions,
 	pub extras:Extras,
-	
+
+	#[serde(skip)]
+	pub(crate) original_index: Option<usize>,
 }

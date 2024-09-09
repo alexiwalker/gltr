@@ -1,7 +1,7 @@
 use std::fs;
+use std::time::Instant;
 use crate::buffers::{BufferViewTarget, GltfBufferView, GltfBuffers};
-use crate::gltf_object::extract_flags::GltrExtractFlags;
-use crate::gltf_object::GltfObject;
+use crate::prelude::*;
 
 #[test]
 fn test_decode() {
@@ -9,9 +9,9 @@ fn test_decode() {
 
 	let buffer_view_b64 = serde_json::from_str::<GltfBuffers>(content.as_str()).expect("should be valid JSON");
 
-	assert!(buffer_view_b64.0.len() > 0);
+	assert!(!buffer_view_b64.0.is_empty());
 
-	let first_buffer = buffer_view_b64.0.get(0).unwrap().clone();
+	let first_buffer = buffer_view_b64.0.first().unwrap().clone();
 
 	let binary_buffer = first_buffer.to_binary().expect("should be valid encoded buffer");
 
@@ -40,7 +40,7 @@ fn test_views() {
 		.expect("should be valid decoded buffers");
 
 	for x in &view_list {
-		let v = binary_buffers.get_view(&x);
+		let v = binary_buffers.get_view(x);
 		assert!(v.is_ok());
 	}
 
@@ -64,12 +64,12 @@ fn test_views_2() {
 	let buffer_view_b64 = serde_json::from_str::<GltfBuffers>(content.as_str())
 		.expect("should be valid JSON");
 
-	let view_list = serde_json::from_str::<Vec<GltfBufferView>>(views.as_str())
+	serde_json::from_str::<Vec<GltfBufferView>>(views.as_str())
 		.expect("should be valid JSON");
 	let binary_buffers = buffer_view_b64.to_binary()
 		.expect("should be valid decoded buffers");
 
-	let buff_0_len = binary_buffers.0.get(0).unwrap().byte_length;
+	let buff_0_len = binary_buffers.0.first().unwrap().byte_length;
 	let mut rng = rand::thread_rng();
 	let size = rng.gen_range(0..buff_0_len);
 
@@ -107,11 +107,21 @@ pub fn deserialize_full_file(){
 #[test]
 pub fn extract_single_object(){
 	let content = fs::read_to_string("assets/test_assets/cliffs.gltf").expect("scene JSON file should exist");
+
+	let time_before_parse = Instant::now();
 	let object = GltfObject::try_parse_json_str(content.as_str());
 
+	let time_to_parse = time_before_parse.elapsed().as_millis();
+
+	println!("{time_to_parse} to parse original file");
+
 	assert!(object.is_ok());
+	let time_before_extract = Instant::now();
 
 	let new = object.unwrap().extract_node(1, GltrExtractFlags::CENTER_OBJECTS|GltrExtractFlags::RECALCULATE_BUFFERS);
+	let time_to_extract = time_before_extract.elapsed().as_millis();
+
+	println!("{time_to_extract} to extract node");
 
 	dbg!(&new);
 

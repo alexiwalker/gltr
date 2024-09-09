@@ -8,10 +8,8 @@ mod gltf_scene;
 mod gltf_node;
 mod gltf_material;
 mod gltf_mesh;
-pub mod extract_flags;
+mod extract_flags;
 
-use std::collections::HashMap;
-use std::ops::Deref;
 use serde_derive::{Deserialize, Serialize};
 use extract_flags::GltrExtractFlags;
 use gltf_accessor::GltfAccessor;
@@ -20,7 +18,14 @@ use gltf_sampler::GltfSampler;
 use gltf_texture::GltfTexture;
 use crate::buffers::{GltfBufferView, GltfBuffers};
 
+
+#[allow(unused_imports)]
 pub mod prelude {
+
+	pub mod ops {
+		pub use crate::ops::*;
+	}
+
 	pub use crate::gltf_object::extras::*;
 	pub use crate::gltf_object::gltf_scene::*;
 	pub use crate::gltf_object::gltf_asset::*;
@@ -33,12 +38,12 @@ pub mod prelude {
 	pub use crate::gltf_object::gltf_scene::*;
 	pub use crate::gltf_object::gltf_texture::*;
 	pub use crate::buffers as gltf_buffers;
-	pub use crate::gltf_object::extract_flags as gltf_extract_flags;
+	pub use crate::gltf_object::extract_flags::*;
 }
 
 
 use crate::gltf_object::prelude::*;
-
+use crate::ops::VecExt;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub enum GltrError {
@@ -65,6 +70,10 @@ pub struct GltfObject {
 	pub images: Vec<GltfImage>,
 	#[serde(default = "Vec::new")]
 	pub accessors: Vec<GltfAccessor>,
+
+
+	#[serde(default = "Vec::new")]
+	pub materials: Vec<GltfMaterial>,
 
 	#[serde(rename = "bufferViews", default = "Vec::new")]
 	pub buffer_views: Vec<GltfBufferView>,
@@ -100,6 +109,8 @@ impl GltfObject {
 
 		let mut node = node.clone();
 
+		node.original_index = Some(idx);
+
 
 		if flags.has_flag(GltrExtractFlags::CENTER_OBJECTS) && node.translation.is_some() {
 			node.translation = Some([0f32, 0f32, 0f32])
@@ -109,91 +120,188 @@ impl GltfObject {
 		let mesh_idx = &node.mesh;
 
 		if mesh_idx.is_some() {
-			let mesh_idx = mesh_idx.unwrap();
 
-			let mesh = self.meshes.get(mesh_idx);
-
-			let mesh = match mesh {
+			let mut mesh = match self.meshes.get(mesh_idx.unwrap()) {
 				None => {
-					return Err(GltrError::InvalidIndex("Mesh", mesh_idx))
+					return Err(GltrError::InvalidIndex("Mesh", mesh_idx.unwrap()))
 				}
 				Some(mesh) => {
 					mesh.clone()
-					// cloning a mesh here is 'cheap' (ish) as it is only metadata
-					// this field does NOT include the actual vertices, materials etc
 				}
 			};
 
-			let primitives = mesh.primitives.clone();
+			mesh.original_index = *mesh_idx;
 
-			//maps are <originalIndex,newIndex>
-			let mut accessor_indices_remap = HashMap::<usize, usize>::new();
-			let mut material_remap = HashMap::<usize, usize>::new();
-			let mut buffer_view_remap = HashMap::<usize, usize>::new();
 
-			let mut current_accessor_index = 0;
-			let mut current_material_index = 0;
-			let mut current_buffer_index = 0;
+			for x in &mesh.primitives {
+				let accessor_index = x.accessor;
+				let material_index = x.material;
 
-			let mut new_primitives: Vec<GltfMeshPrimitive> = Vec::new();
-			for x in primitives {
-				let accessor = x.accessor;
-				let material = x.material;
-
-				let mut new_primitive = x.clone();
-
-				if accessor.is_some() {
-					let accessor_index = accessor.unwrap();
-
-					let mut accessor = match self.accessors.get(accessor_index) {
+				if accessor_index.is_some() {
+					let mut accessor = match self.accessors.get(accessor_index.unwrap()) {
 						None => {
-							return Err(GltrError::InvalidIndex("Indices", mesh_idx))
+							return Err(GltrError::InvalidIndex("Accessor", mesh_idx.unwrap()))
+
 						}
-						Some(a) => {
-							a.clone()
+						Some(accessor) => {
+							accessor.clone()
 						}
 					};
 
+					accessor.original_index  = accessor_index;
 
-					if accessor.buffer_view.is_some() {
-						let original_buffer_index = (&accessor.buffer_view).unwrap();
+					new_object.accessors.push_if_no_match(accessor.clone(),|x|x.original_index==mesh.original_index);
 
-						if let std::collections::hash_map::Entry::Vacant(e) = buffer_view_remap.entry(original_buffer_index) {
-							e.insert(current_buffer_index);
-							current_buffer_index+=1;
+				}
+
+
+				if material_index.is_some() {
+					let mut material = match self.materials.get(material_index.unwrap()) {
+						None => {
+							return Err(GltrError::InvalidIndex("Material", mesh_idx.unwrap()))
+
 						}
+						Some(material) => {
+							material.clone()
+						}
+					};
+
+					material.original_index  = material_index;
+
+					new_object.materials.push_if_no_match(material.clone(),|x|{
+						x.original_index==material.original_index
+					});
+
+				}
+
+			}
+
+			new_object.meshes.push_if_no_match(mesh.clone(),|x|{
+				x.original_index==mesh.original_index
+			})
+		}
 
 
-						let new_view = *buffer_view_remap.get(&original_buffer_index).unwrap();
-						accessor.buffer_view = Some(new_view);
+		for x in &new_object.materials {
 
+			let texture_index = x.get_texture_index();
+
+			if texture_index.is_some() {
+				let mut texture = match self.textures.get(texture_index.unwrap()) {
+					None => {
+						return Err(GltrError::InvalidIndex("Texture", texture_index.unwrap()))
 					}
-					
-					
-					
-
-				}
-				
-				
-				if material.is_some() {
-					let material_index = material.unwrap();
-
-					let mut material = match self.accessors.get(material_index) {
-						None => {
-							return Err(GltrError::InvalidIndex("material", mesh_idx))
-						}
-						Some(a) => {
-							a.clone()
-						}
-					};
-					
-					
-
-				}
-
-				new_primitives.push(new_primitive);
+					Some(tex) => {
+						tex.clone()
+					}
+				};
+				texture.original_index = texture_index;
+				new_object.textures.push_if_no_match(texture.clone(),|x|x.original_index==texture.original_index)
 			}
 		}
+
+
+		for x in &new_object.textures {
+			let image_idx = x.source_image_index;
+			if image_idx.is_some() {
+				let mut image = match self.images.get(image_idx.unwrap()) {
+					None => {
+						return Err(GltrError::InvalidIndex("Image", x.source_image_index.unwrap()))
+
+					},
+					Some(image) => {
+						image.clone()
+					}
+				};
+
+				image.original_index = image_idx;
+				new_object.images.push_if_no_match(image.clone(),|x|x.original_index==image.original_index)
+
+			}
+
+			let sampler_index = x.sample_index;
+			if sampler_index.is_some() {
+				let mut sampler = match self.samplers.get(sampler_index.unwrap()) {
+					None => {
+						return Err(GltrError::InvalidIndex("Sampler", x.sample_index.unwrap()))
+
+					},
+					Some(sampler) => {
+						sampler.clone()
+					}
+				};
+
+				sampler.original_index = sampler_index;
+				new_object.samplers.push_if_no_match(sampler.clone(),|x|x.original_index==sampler.original_index)
+
+			}
+		}
+
+		for x in &new_object.accessors {
+			let buffer_view_index = x.buffer_view;
+			if buffer_view_index.is_some() {
+				let mut buffer_view = match self.buffer_views.get(buffer_view_index.unwrap()) {
+					None => {
+						return Err(GltrError::InvalidIndex("buffer_view", mesh_idx.unwrap()))
+
+					}
+					Some(bv) => {
+						bv.clone()
+					}
+				};
+
+				buffer_view.original_index = buffer_view_index;
+				new_object.buffer_views.push_if_no_match(buffer_view.clone(),|x|x.original_index==buffer_view.original_index)
+			}
+		}
+
+
+		for x in &new_object.images {
+			let buffer_view_index = x.buffer_view;
+			if buffer_view_index.is_some() {
+				let mut buffer_view = match self.buffer_views.get(buffer_view_index.unwrap()) {
+					None => {
+						return Err(GltrError::InvalidIndex("buffer_view", mesh_idx.unwrap()))
+
+					}
+					Some(bv) => {
+						bv.clone()
+					}
+				};
+
+				buffer_view.original_index = buffer_view_index;
+				new_object.buffer_views.push_if_no_match(buffer_view.clone(),|x|x.original_index==buffer_view.original_index)
+			}
+		}
+
+
+
+		for x in &new_object.buffer_views {
+			let buffer_index = x.buffer;
+
+			let mut has = false;
+			for x in &new_object.buffers.0 {
+				if x.original_index.is_some() && x.original_index.unwrap() == buffer_index {
+					has = true;
+				}
+			}
+
+			if !has {
+
+				let buffer = match self.buffers.0.get(buffer_index) {
+					None => {
+						return Err(GltrError::InvalidIndex("buffer", mesh_idx.unwrap()))
+					}
+					Some(b) => {
+						b.clone()
+					}
+				};
+
+				new_object.buffers.0.push(buffer)
+			}
+		}
+
+
 
 		new_object.scene = self.scene;
 		new_object.nodes.push(node);
@@ -214,6 +322,7 @@ impl GltfObject {
 			textures: vec![],
 			images: vec![],
 			accessors: vec![],
+			materials: vec![],
 			buffer_views: vec![],
 			samplers: vec![],
 			buffers: GltfBuffers::default(),

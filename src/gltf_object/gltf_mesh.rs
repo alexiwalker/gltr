@@ -4,6 +4,11 @@ use serde_derive::{Deserialize, Serialize};
 pub struct GltfMesh {
 	pub name: String,
 	pub primitives: Vec<GltfMeshPrimitive>,
+
+
+
+	// #[serde(skip)]
+	pub(crate) original_index: Option<usize>,
 }
 
 
@@ -18,4 +23,7 @@ pub struct GltfMeshPrimitive {
 	pub targets: Option<usize>, //todo check valid targets here
 	pub extensions:Option<Vec<serde_json::Value>>,
 	pub extras:Option<Vec<serde_json::Value>>,
+
+	// #[serde(skip)]
+	pub(crate) original_index: Option<usize>,
 }
