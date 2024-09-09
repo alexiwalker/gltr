@@ -84,11 +84,7 @@ impl BufferViewTarget {
 
 	pub fn is_valid(&self) -> bool {
 		let v = self.0;
-		match v {
-			34962 => { true }
-			34963 => { true }
-			_ => { false }
-		}
+		matches!(v, 34962 | 34963)
 	}
 }
 
