@@ -1,7 +1,7 @@
-use std::fs;
-use std::time::Instant;
 use crate::buffers::{BufferViewTarget, GltfBufferView, GltfBuffers};
 use crate::prelude::*;
+use std::fs;
+use std::time::Instant;
 
 #[test]
 fn test_decode() {
@@ -96,16 +96,15 @@ fn test_views_2() {
 
 
 #[test]
-pub fn deserialize_full_file(){
+pub fn deserialize_full_file() {
 	let content = fs::read_to_string("assets/test_assets/cliffs.gltf").expect("scene JSON file should exist");
 	let object = GltfObject::try_parse_json_str(content.as_str());
 	assert!(object.is_ok());
 }
 
 
-
 #[test]
-pub fn extract_single_object(){
+pub fn extract_single_object() {
 	let content = fs::read_to_string("assets/test_assets/cliffs.gltf").expect("scene JSON file should exist");
 
 	let time_before_parse = Instant::now();
@@ -118,12 +117,10 @@ pub fn extract_single_object(){
 	assert!(object.is_ok());
 	let time_before_extract = Instant::now();
 
-	let new = object.unwrap().extract_node(1, GltrExtractFlags::CENTER_OBJECTS|GltrExtractFlags::RECALCULATE_BUFFERS);
+	let new = object.unwrap().extract_node(1, GltrExtractFlags::CENTER_OBJECTS | GltrExtractFlags::RECALCULATE_BUFFERS);
 	let time_to_extract = time_before_extract.elapsed().as_millis();
 
 	println!("{time_to_extract} to extract node");
 
 	dbg!(&new);
-
-
 }

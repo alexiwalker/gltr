@@ -1,5 +1,3 @@
-
-
 mod tests;
 pub mod buffers;
 mod gltf_object;

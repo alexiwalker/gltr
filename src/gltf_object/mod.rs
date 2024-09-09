@@ -10,35 +10,34 @@ mod gltf_material;
 mod gltf_mesh;
 mod extract_flags;
 
-use serde_derive::{Deserialize, Serialize};
+use crate::buffers::{GltfBufferView, GltfBuffers};
 use extract_flags::GltrExtractFlags;
 use gltf_accessor::GltfAccessor;
 use gltf_image::GltfImage;
 use gltf_sampler::GltfSampler;
 use gltf_texture::GltfTexture;
-use crate::buffers::{GltfBufferView, GltfBuffers};
+use serde_derive::{Deserialize, Serialize};
 
 
 #[allow(unused_imports)]
 pub mod prelude {
-
 	pub mod ops {
 		pub use crate::ops::*;
 	}
 
+	pub use crate::buffers as gltf_buffers;
+	pub use crate::gltf_object::extract_flags::*;
 	pub use crate::gltf_object::extras::*;
-	pub use crate::gltf_object::gltf_scene::*;
-	pub use crate::gltf_object::gltf_asset::*;
 	pub use crate::gltf_object::gltf_accessor::*;
+	pub use crate::gltf_object::gltf_asset::*;
 	pub use crate::gltf_object::gltf_image::*;
 	pub use crate::gltf_object::gltf_material::*;
 	pub use crate::gltf_object::gltf_mesh::*;
 	pub use crate::gltf_object::gltf_node::*;
 	pub use crate::gltf_object::gltf_sampler::*;
 	pub use crate::gltf_object::gltf_scene::*;
+	pub use crate::gltf_object::gltf_scene::*;
 	pub use crate::gltf_object::gltf_texture::*;
-	pub use crate::buffers as gltf_buffers;
-	pub use crate::gltf_object::extract_flags::*;
 }
 
 
@@ -70,7 +69,6 @@ pub struct GltfObject {
 	pub images: Vec<GltfImage>,
 	#[serde(default = "Vec::new")]
 	pub accessors: Vec<GltfAccessor>,
-
 
 	#[serde(default = "Vec::new")]
 	pub materials: Vec<GltfMaterial>,
@@ -120,7 +118,6 @@ impl GltfObject {
 		let mesh_idx = &node.mesh;
 
 		if mesh_idx.is_some() {
-
 			let mut mesh = match self.meshes.get(mesh_idx.unwrap()) {
 				None => {
 					return Err(GltrError::InvalidIndex("Mesh", mesh_idx.unwrap()))
@@ -141,17 +138,15 @@ impl GltfObject {
 					let mut accessor = match self.accessors.get(accessor_index.unwrap()) {
 						None => {
 							return Err(GltrError::InvalidIndex("Accessor", mesh_idx.unwrap()))
-
 						}
 						Some(accessor) => {
 							accessor.clone()
 						}
 					};
 
-					accessor.original_index  = accessor_index;
+					accessor.original_index = accessor_index;
 
-					new_object.accessors.push_if_no_match(accessor.clone(),|x|x.original_index==mesh.original_index);
-
+					new_object.accessors.push_if_no_match(accessor.clone(), |x| x.original_index == mesh.original_index);
 				}
 
 
@@ -159,31 +154,27 @@ impl GltfObject {
 					let mut material = match self.materials.get(material_index.unwrap()) {
 						None => {
 							return Err(GltrError::InvalidIndex("Material", mesh_idx.unwrap()))
-
 						}
 						Some(material) => {
 							material.clone()
 						}
 					};
 
-					material.original_index  = material_index;
+					material.original_index = material_index;
 
-					new_object.materials.push_if_no_match(material.clone(),|x|{
-						x.original_index==material.original_index
+					new_object.materials.push_if_no_match(material.clone(), |x| {
+						x.original_index == material.original_index
 					});
-
 				}
-
 			}
 
-			new_object.meshes.push_if_no_match(mesh.clone(),|x|{
-				x.original_index==mesh.original_index
+			new_object.meshes.push_if_no_match(mesh.clone(), |x| {
+				x.original_index == mesh.original_index
 			})
 		}
 
 
 		for x in &new_object.materials {
-
 			let texture_index = x.get_texture_index();
 
 			if texture_index.is_some() {
@@ -196,7 +187,7 @@ impl GltfObject {
 					}
 				};
 				texture.original_index = texture_index;
-				new_object.textures.push_if_no_match(texture.clone(),|x|x.original_index==texture.original_index)
+				new_object.textures.push_if_no_match(texture.clone(), |x| x.original_index == texture.original_index)
 			}
 		}
 
@@ -207,16 +198,14 @@ impl GltfObject {
 				let mut image = match self.images.get(image_idx.unwrap()) {
 					None => {
 						return Err(GltrError::InvalidIndex("Image", x.source_image_index.unwrap()))
-
-					},
+					}
 					Some(image) => {
 						image.clone()
 					}
 				};
 
 				image.original_index = image_idx;
-				new_object.images.push_if_no_match(image.clone(),|x|x.original_index==image.original_index)
-
+				new_object.images.push_if_no_match(image.clone(), |x| x.original_index == image.original_index)
 			}
 
 			let sampler_index = x.sample_index;
@@ -224,16 +213,14 @@ impl GltfObject {
 				let mut sampler = match self.samplers.get(sampler_index.unwrap()) {
 					None => {
 						return Err(GltrError::InvalidIndex("Sampler", x.sample_index.unwrap()))
-
-					},
+					}
 					Some(sampler) => {
 						sampler.clone()
 					}
 				};
 
 				sampler.original_index = sampler_index;
-				new_object.samplers.push_if_no_match(sampler.clone(),|x|x.original_index==sampler.original_index)
-
+				new_object.samplers.push_if_no_match(sampler.clone(), |x| x.original_index == sampler.original_index)
 			}
 		}
 
@@ -243,7 +230,6 @@ impl GltfObject {
 				let mut buffer_view = match self.buffer_views.get(buffer_view_index.unwrap()) {
 					None => {
 						return Err(GltrError::InvalidIndex("buffer_view", mesh_idx.unwrap()))
-
 					}
 					Some(bv) => {
 						bv.clone()
@@ -251,7 +237,7 @@ impl GltfObject {
 				};
 
 				buffer_view.original_index = buffer_view_index;
-				new_object.buffer_views.push_if_no_match(buffer_view.clone(),|x|x.original_index==buffer_view.original_index)
+				new_object.buffer_views.push_if_no_match(buffer_view.clone(), |x| x.original_index == buffer_view.original_index)
 			}
 		}
 
@@ -262,7 +248,6 @@ impl GltfObject {
 				let mut buffer_view = match self.buffer_views.get(buffer_view_index.unwrap()) {
 					None => {
 						return Err(GltrError::InvalidIndex("buffer_view", mesh_idx.unwrap()))
-
 					}
 					Some(bv) => {
 						bv.clone()
@@ -270,10 +255,9 @@ impl GltfObject {
 				};
 
 				buffer_view.original_index = buffer_view_index;
-				new_object.buffer_views.push_if_no_match(buffer_view.clone(),|x|x.original_index==buffer_view.original_index)
+				new_object.buffer_views.push_if_no_match(buffer_view.clone(), |x| x.original_index == buffer_view.original_index)
 			}
 		}
-
 
 
 		for x in &new_object.buffer_views {
@@ -287,7 +271,6 @@ impl GltfObject {
 			}
 
 			if !has {
-
 				let buffer = match self.buffers.0.get(buffer_index) {
 					None => {
 						return Err(GltrError::InvalidIndex("buffer", mesh_idx.unwrap()))
@@ -300,7 +283,6 @@ impl GltfObject {
 				new_object.buffers.0.push(buffer)
 			}
 		}
-
 
 
 		new_object.scene = self.scene;

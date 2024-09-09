@@ -1,5 +1,5 @@
+use base64::prelude::BASE64_STANDARD;
 use base64::{DecodeError, Engine};
-use base64::prelude::{BASE64_STANDARD};
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -100,7 +100,7 @@ pub struct GltfBinaryBuffers(pub Vec<GltfBinaryBuffer>);
 pub struct GltfBuffers(pub Vec<GltfBase64Buffer>);
 
 impl GltfBuffers {
-	pub fn new()->Self {
+	pub fn new() -> Self {
 		GltfBuffers(Vec::new())
 	}
 }
@@ -128,8 +128,7 @@ impl TryFrom<GltfBuffers> for GltfBinaryBuffers {
 }
 
 impl GltfBuffers {
-	
-	pub fn empty()-> Self {
+	pub fn empty() -> Self {
 		GltfBuffers(vec![])
 	}
 	pub fn to_binary(self) -> Result<GltfBinaryBuffers, &'static str> {

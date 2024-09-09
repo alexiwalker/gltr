@@ -1,5 +1,5 @@
-use serde_derive::{Deserialize, Serialize};
 use crate::gltf_object::prelude::*;
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct GltfNode {
@@ -13,8 +13,8 @@ pub struct GltfNode {
 	pub scale: Option<[f32; 3]>,
 	pub weights: Option<Vec<usize>>,
 
-	pub extras:Extras,
-	pub extensions:Extensions,
+	pub extras: Extras,
+	pub extensions: Extensions,
 
 	#[serde(skip)]
 	pub(crate) original_index: Option<usize>,
