@@ -1,7 +1,6 @@
-pub mod structs;
 
 
 mod tests;
-mod buffers;
-mod gltf_object;
+pub mod buffers;
+pub mod gltf_object;
 

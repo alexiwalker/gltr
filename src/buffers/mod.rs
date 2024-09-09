@@ -7,6 +7,9 @@ pub struct GltfBase64Buffer {
 	#[serde(rename = "byteLength")]
 	pub byte_length: usize,
 	pub uri: String,
+
+	#[serde(skip)]
+	pub(crate) original_index: Option<usize>,
 }
 
 
@@ -66,6 +69,10 @@ pub struct GltfBufferView {
 	//https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.pdf see 5.11.5 bufferView.target
 	//enum
 	pub target: Option<BufferViewTarget>,
+
+	#[serde(skip)]
+	pub(crate) original_index: Option<usize>,
+
 }
 
 
@@ -85,13 +92,6 @@ impl BufferViewTarget {
 	}
 }
 
-
-// #[derive(Deserialize, Serialize, Debug)]
-// pub enum BufferViewTarget {
-// 	ArrayBuffer =34962,
-// 	ElementArrayBuffer =34963,
-// }
-
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GltfBinaryBuffers(pub Vec<GltfBinaryBuffer>);
 
@@ -99,6 +99,16 @@ pub struct GltfBinaryBuffers(pub Vec<GltfBinaryBuffer>);
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GltfBuffers(pub Vec<GltfBase64Buffer>);
 
+impl GltfBuffers {
+	pub fn new()->Self {
+		GltfBuffers(Vec::new())
+	}
+}
+impl Default for GltfBuffers {
+	fn default() -> Self {
+		Self::new()
+	}
+}
 
 impl TryFrom<GltfBuffers> for GltfBinaryBuffers {
 	type Error = &'static str;

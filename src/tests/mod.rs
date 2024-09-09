@@ -1,5 +1,6 @@
 use std::fs;
 use crate::buffers::{BufferViewTarget, GltfBufferView, GltfBuffers};
+use crate::gltf_object::extract_flags::GltrExtractFlags;
 use crate::gltf_object::GltfObject;
 
 #[test]
@@ -79,6 +80,7 @@ fn test_views_2() {
 		byte_length: size,
 		byte_offset: offset,
 		target: Some(BufferViewTarget::ELEMENT_ARRAY_BUFFER),
+		original_index: None,
 	};
 
 	let v = binary_buffers.get_view(&view);
@@ -96,12 +98,22 @@ fn test_views_2() {
 #[test]
 pub fn deserialize_full_file(){
 	let content = fs::read_to_string("assets/test_assets/cliffs.gltf").expect("scene JSON file should exist");
-
-
-
-	let object = GltfObject::try_from_str(content.as_str());
-
-
-	dbg!(&object);
+	let object = GltfObject::try_parse_json_str(content.as_str());
 	assert!(object.is_ok());
+}
+
+
+
+#[test]
+pub fn extract_single_object(){
+	let content = fs::read_to_string("assets/test_assets/cliffs.gltf").expect("scene JSON file should exist");
+	let object = GltfObject::try_parse_json_str(content.as_str());
+
+	assert!(object.is_ok());
+
+	let new = object.unwrap().extract_node(1, GltrExtractFlags::CENTER_OBJECTS|GltrExtractFlags::RECALCULATE_BUFFERS);
+
+	dbg!(&new);
+
+
 }

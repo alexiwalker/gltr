@@ -1,0 +1,18 @@
+use serde_derive::{Deserialize, Serialize};
+use crate::gltf_object::extras::{Extensions, Extras};
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct GltfImage {
+	pub uri:Option<String>,
+
+	#[serde(rename="mimeType")]
+	pub mime_type:Option<String>,
+
+	#[serde(rename="bufferView")]
+	pub buffer_view:Option<usize>,
+
+	pub name:Option<String>,
+	pub extensions:Extensions,
+	pub extras:Extras,
+	
+}
