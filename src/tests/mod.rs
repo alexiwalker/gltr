@@ -117,10 +117,11 @@ pub fn extract_single_object() {
 	assert!(object.is_ok());
 	let time_before_extract = Instant::now();
 
-	let new = object.unwrap().extract_node(1, GltrExtractFlags::CENTER_OBJECTS | GltrExtractFlags::RECALCULATE_BUFFERS);
+	let new = object.unwrap().extract_node(1, GltrExtractFlags::empty().center_objects().recalculate_buffers());
 	let time_to_extract = time_before_extract.elapsed().as_millis();
 
 	println!("{time_to_extract} to extract node");
 
-	dbg!(&new);
+	// dbg!(&new);
+
 }

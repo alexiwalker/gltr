@@ -9,15 +9,12 @@ mod gltf_node;
 mod gltf_material;
 mod gltf_mesh;
 mod extract_flags;
+mod gltf_camera;
+mod gltf_animation;
 
 use crate::buffers::{GltfBufferView, GltfBuffers};
-use extract_flags::GltrExtractFlags;
-use gltf_accessor::GltfAccessor;
-use gltf_image::GltfImage;
-use gltf_sampler::GltfSampler;
-use gltf_texture::GltfTexture;
-use serde_derive::{Deserialize, Serialize};
 
+use serde_derive::{Deserialize, Serialize};
 
 #[allow(unused_imports)]
 pub mod prelude {
@@ -38,6 +35,8 @@ pub mod prelude {
 	pub use crate::gltf_object::gltf_scene::*;
 	pub use crate::gltf_object::gltf_scene::*;
 	pub use crate::gltf_object::gltf_texture::*;
+	pub use crate::gltf_object::gltf_camera::*;
+	pub use crate::gltf_object::gltf_animation::*;
 }
 
 
@@ -53,34 +52,145 @@ pub enum GltrError {
 
 pub type GltrResult<T> = Result<T, GltrError>;
 
+
+#[derive(Deserialize, Serialize, Debug,Clone)]
+pub struct GltfSkin {
+	#[serde(rename="inverseBindMatrices")]
+	pub inverse_bind_matrices:Option<usize>,
+
+	pub skeleton:Option<usize>,
+
+	pub joins:Vec<usize>,
+
+	pub name:Option<String>,
+
+	pub extensions:Extensions,
+	pub extras:Extras
+
+}
+
+
+///see fields in https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.pdf
+/// field numbering relative to 5.17 - glTF
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GltfObject {
-	pub asset: GltfAsset,
-	pub scene: usize,
-	#[serde(default = "Vec::new")]
-	pub scenes: Vec<GltfScene>,
-	#[serde(default = "Vec::new")]
-	pub nodes: Vec<GltfNode>,
-	#[serde(default = "Vec::new")]
-	pub meshes: Vec<GltfMesh>,
-	#[serde(default = "Vec::new")]
-	pub textures: Vec<GltfTexture>,
-	#[serde(default = "Vec::new")]
-	pub images: Vec<GltfImage>,
+
+	/// 5.17.1 - glTF.extensionsUsed
+	/// 
+	/// names of glTF extensions used in this asset
+	#[serde(rename="extensionsUsed",default = "Vec::new")]
+	pub extensions_used: Vec<String>,
+
+	/// 5.17.2 - glTF.extensionsRequired
+	/// 
+	/// Names of glTF extensions required to properly load this asset.
+	#[serde(rename="extensionsRequired",default = "Vec::new")]
+	pub extensions_required: Vec<String>,
+
+
+	/// 5.17.3 - glTF.accessors
+	/// 
+	/// An array of accessors. An accessor is a typed view into a bufferView
 	#[serde(default = "Vec::new")]
 	pub accessors: Vec<GltfAccessor>,
 
+	/// 5.17.4 - glTF.animations
+	/// 
+	/// An array of keyframe animations.
 	#[serde(default = "Vec::new")]
-	pub materials: Vec<GltfMaterial>,
+	pub animations: Vec<GltfAnimation>,
 
+
+	/// 5.17.5 - glTF.asset
+	/// 
+	/// Metadata about the glTF asset.
+	pub asset: GltfAsset,
+
+	/// 5.17.6 - glTF.buffers
+	/// 
+	/// An array of buffers. A buffer points to binary geometry, animation, or skins.
+	#[serde(default = "GltfBuffers::empty")]
+	pub buffers: GltfBuffers,
+
+
+	/// 5.17.7 - glTF.bufferViews
+	/// 
+	/// An array of bufferViews. A bufferView is a view into a buffer generally representing a subset of the buffer.
 	#[serde(rename = "bufferViews", default = "Vec::new")]
 	pub buffer_views: Vec<GltfBufferView>,
 
+	/// 5.17.8 - glTF.cameras
+	/// 
+	/// An array of cameras. A camera defines a projection matrix.
+	#[serde(default = "Vec::new")]
+	pub cameras: Vec<GltfCamera>,
+
+	/// 5.17.9 - glTF.images
+	/// 
+	/// An array of images. An image defines data used to create a texture.
+	#[serde(default = "Vec::new")]
+	pub images: Vec<GltfImage>,
+
+
+	/// 5.17.10 - glTF.materials
+	/// 
+	/// An array of materials. A material defines the appearance of a primitive.
+	#[serde(default = "Vec::new")]
+	pub materials: Vec<GltfMaterial>,
+
+
+	/// 5.17.11 - glTF.meshes
+	/// 
+	/// An array of meshes. A mesh is a set of primitives to be rendered.
+	#[serde(default = "Vec::new")]
+	pub meshes: Vec<GltfMesh>,
+
+
+	/// 5.17.12 - glTF.nodes
+	/// 
+	/// An array of nodes
+	#[serde(default = "Vec::new")]
+	pub nodes: Vec<GltfNode>,
+
+	/// 5.17.13 - glTF.samplers
+	/// 
+	/// An array of samplers. A sampler contains properties for texture filtering and wrapping modes.
 	#[serde(default = "Vec::new")]
 	pub samplers: Vec<GltfSampler>,
 
-	#[serde(default = "GltfBuffers::empty")]
-	pub buffers: GltfBuffers,
+	/// 5.17.14 - glTF.scene
+	/// 
+	// The index of the default scene. This property MUST NOT be defined, when scenes is undefined.
+	pub scene: usize,
+
+	/// 5.17.15 - glTF.scenes
+	/// 
+	/// An array of scenes
+	#[serde(default = "Vec::new")]
+	pub scenes: Vec<GltfScene>,
+
+	/// 5.17.16 - glTF.skins
+	/// 
+	/// An array of skins. A skin is defined by joints and matrices.
+	#[serde(default = "Vec::new")]
+	pub skins: Vec<GltfSkin>,
+
+	/// 5.17.17 - glTF.textures
+	/// 
+	/// An array of textures.
+	#[serde(default = "Vec::new")]
+	pub textures: Vec<GltfTexture>,
+
+	/// 5.17.18 - glTF.extensions
+	/// 
+	/// JSON object with extension-specific objects.
+	pub extensions:Extensions,
+
+	/// 5.17.19 - glTF.extras
+	/// 
+	/// Application-specific data.
+	pub extras:Extras
+
 }
 impl GltfObject {
 	pub fn parse_json_str(string: &str) -> Self {
@@ -293,6 +403,7 @@ impl GltfObject {
 
 	pub fn new() -> Self {
 		GltfObject {
+			extensions_used: vec![],
 			asset: GltfAsset {
 				generator: "Gltr Library v0.0.1".to_string(),
 				version: "2.0".to_string(),
@@ -302,12 +413,18 @@ impl GltfObject {
 			nodes: vec![],
 			meshes: vec![],
 			textures: vec![],
+			extensions: None,
 			images: vec![],
 			accessors: vec![],
 			materials: vec![],
 			buffer_views: vec![],
 			samplers: vec![],
 			buffers: GltfBuffers::default(),
+			extensions_required: vec![],
+			animations: vec![],
+			cameras: vec![],
+			skins: vec![],
+			extras: None,
 		}
 	}
 }

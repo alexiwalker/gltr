@@ -11,9 +11,24 @@ impl GltrExtractFlags {
 	pub fn all() -> Self {
 		Self::ALL
 	}
+	
+	pub fn empty() -> Self {
+		Self(0)
+	}
 
+	/// intended usage is with one of the consts, eg GltrExtractFlags.RECALCULATE_BUFFERS
+	/// as opposed to passing in an arbitrary object, which would return true if the two objects
+	/// have any overlapping flags
 	pub fn has_flag(&self, flag: GltrExtractFlags) -> bool {
 		self.0 & flag.0 != 0
+	}
+	
+	pub fn recalculate_buffers(self) -> GltrExtractFlags {
+		self | GltrExtractFlags::RECALCULATE_BUFFERS
+	}
+	
+	pub fn center_objects(self) -> GltrExtractFlags {
+		self | GltrExtractFlags::CENTER_OBJECTS
 	}
 }
 
